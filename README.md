@@ -36,6 +36,8 @@ playbooks/03-debug-loop-breaker.md
 
 Auth, Stripe, secrets, deploy, a landing page, email, SEO, tests, and a pre-launch audit are in the **Vibe Launch Pack** — 16 job playbooks, £12, instant download.
 
-[Get the Vibe Launch Pack — £12](PAYHIP_URL)
+[Get the Vibe Launch Pack — £12](https://payhip.com/b/6UGRb)
+
+This free sample is also available [by email from Payhip](https://payhip.com/b/p2ol7), if you would rather not clone the repo.
 
 Not affiliated with Cursor, Anysphere, Anthropic, or any other tool named in these files. Licence: use in your own projects, no resale — see `LICENSE.md`.

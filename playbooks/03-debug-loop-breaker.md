@@ -88,4 +88,4 @@ This sample is playbook 03, plus the scope-guard rule and an `AGENTS.md` starter
 
 The **Vibe Launch Pack** (£12) adds the other 15 playbooks: secrets, auth, Stripe checkout, safe database access, deploy without leaking env, a landing page with a real CTA, waitlist, email, SEO, tests, errors, accessibility, and a pre-launch audit.
 
-[Get the Vibe Launch Pack — £12](PAYHIP_URL)
+[Get the Vibe Launch Pack — £12](https://payhip.com/b/6UGRb)
