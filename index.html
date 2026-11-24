@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VibePlaybooks — Debug Loop Breaker (free) and the Vibe Launch Pack</title>
+  <meta name="description" content="Free Debug Loop Breaker playbook for Cursor and Claude Code. Stop the rewrite spiral. The Vibe Launch Pack (£12) adds 15 more playbooks for a safe launch.">
+  <link rel="canonical" href="https://besttechguides.github.io/vibeplaybooks/">
+  <meta property="og:title" content="VibePlaybooks — playbooks for a safe vibe-coded launch">
+  <meta property="og:description" content="Free Debug Loop Breaker sample. The Vibe Launch Pack is 16 job playbooks for auth, Stripe, deploy and the rest of a launch. £12.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://besttechguides.github.io/vibeplaybooks/">
+  <meta property="og:image" content="https://besttechguides.github.io/vibeplaybooks/assets/og-1200x630.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#121418">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --ink: #121418;
+      --paper: #f4efe6;
+      --amber: #e8a117;
+      --muted: #6e675c;
+      --body: #3c3832;
+      --rule: #c9b8a0;
+      --card: #ffffff;
+      --panel: #242730;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.55;
+    }
+    a { color: inherit; }
+    .wrap { width: min(1080px, calc(100% - 40px)); margin: 0 auto; }
+    header {
+      background: var(--ink);
+      color: var(--paper);
+      border-top: 6px solid var(--amber);
+      padding: 20px 0 72px;
+    }
+    .brand {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      font-weight: 700;
+      color: var(--amber);
+    }
+    .brand a { text-decoration: none; }
+    .nav a { color: var(--paper); letter-spacing: 0; font-weight: 600; margin-left: 1.4rem; text-decoration: none; opacity: 0.85; }
+    .nav a:hover, .nav a:focus { opacity: 1; text-decoration: underline; }
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      line-height: 0.95;
+      letter-spacing: -0.03em;
+      font-weight: 750;
+      margin: 36px 0 16px;
+      max-width: 14ch;
+    }
+    .lede {
+      font-size: 1.2rem;
+      max-width: 38rem;
+      color: #e6dece;
+      font-style: italic;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 400;
+    }
+    .actions { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 12px; }
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      padding: 0.85rem 1.2rem;
+      border-radius: 8px;
+      font-weight: 700;
+      border: 2px solid transparent;
+    }
+    .btn:focus { outline: 3px solid var(--amber); outline-offset: 3px; }
+    .btn-primary { background: var(--amber); color: var(--ink); }
+    .btn-ghost { background: transparent; color: var(--paper); border-color: #6a655c; }
+    .btn-ghost:hover, .btn-ink:hover { border-color: var(--amber); }
+    .btn-ink { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    .btn-paper { background: var(--paper); color: var(--ink); border-color: var(--ink); }
+    section { padding: 64px 0; }
+    h2 { font-size: clamp(1.8rem, 3vw, 2.4rem); letter-spacing: -0.03em; margin: 0 0 12px; }
+    .sub { color: var(--muted); font-style: italic; font-family: Georgia, serif; margin: 0 0 28px; font-size: 1.15rem; }
+    pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre {
+      background: var(--ink);
+      color: var(--paper);
+      padding: 1.1rem 1.2rem;
+      border-radius: 10px;
+      overflow: auto;
+      font-size: 0.92rem;
+      border-left: 4px solid var(--amber);
+    }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .nav { display: none; } }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      padding: 22px 24px;
+    }
+    .card h3 { margin: 0 0 8px; font-size: 1.1rem; }
+    .card p { margin: 0; color: var(--body); }
+    ol.steps { padding-left: 1.2rem; }
+    ol.steps li { margin: 0 0 8px; }
+    .list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 24px;
+    }
+    @media (max-width: 760px) { .list { grid-template-columns: 1fr; } }
+    .list li { display: flex; gap: 10px; align-items: baseline; }
+    .num {
+      flex: 0 0 1.8rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 5px;
+      text-align: center;
+      padding: 2px 0;
+    }
+    .band { background: var(--ink); color: var(--paper); }
+    .band .sub { color: #c9b8a0; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
+    @media (max-width: 760px) { .split { grid-template-columns: 1fr; } }
+    .price-card { border-radius: 16px; padding: 28px; }
+    .free { background: var(--paper); color: var(--ink); }
+    .paid { background: #1b1e27; color: var(--paper); border: 2px solid var(--amber); }
+    .price-card h3 { margin: 0 0 4px; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--amber); }
+    .price-card h4 { margin: 0 0 16px; font-size: 1.6rem; }
+    .price-card ul { margin: 0 0 24px; padding-left: 1.1rem; }
+    .price-card li { margin: 0 0 8px; }
+    footer {
+      padding: 36px 0 48px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    footer a { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="brand">
+        <a href="./">VIBEPLAYBOOKS</a>
+        <nav class="nav" aria-label="Sections">
+          <a href="#sample">Free sample</a>
+          <a href="#pack">The pack</a>
+        </nav>
+      </div>
+      <h1>Stop the rewrite spiral.</h1>
+      <p class="lede">A free playbook for when your agent keeps “fixing” the same bug and the code no longer looks like yours. The paid pack covers the rest of a safe launch.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://github.com/besttechguides/vibeplaybooks">Get the free sample on GitHub</a>
+        <a class="btn btn-ghost" href="PAYHIP_URL">Vibe Launch Pack — £12</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="sample">
+      <div class="wrap">
+        <h2>Debug Loop Breaker</h2>
+        <p class="sub">The free sample. Complete, not a teaser paragraph.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Reproduce first</h3>
+            <p>Prompt 1 forbids edits. The agent must write the steps, the expected result, the actual result, and one hypothesis — then wait for your yes.</p>
+          </article>
+          <article class="card">
+            <h3>One change at a time</h3>
+            <p>No refactors, no file replacements, no new library to paper over a logic bug. Re-run the same steps after each attempt.</p>
+          </article>
+          <article class="card">
+            <h3>Stop after two failures</h3>
+            <p>A third silent rewrite is how the hole gets deeper. The playbook makes the agent write a brief and wait for evidence instead.</p>
+          </article>
+          <article class="card">
+            <h3>Scope guard included</h3>
+            <p>An always-on rule that stops the agent rewriting working files, expanding the brief, or saying “done” without running anything.</p>
+          </article>
+        </div>
+
+        <h2 style="margin-top:56px;">Install</h2>
+        <p class="sub">About two minutes, then start a new agent chat.</p>
+        <ol class="steps">
+          <li>Clone or download this repository.</li>
+          <li>Copy the two <code>.mdc</code> rules into your project’s <code>.cursor/rules/</code> folder.</li>
+          <li>Copy <code>templates/AGENTS.md</code> to your project root if you do not already have one, fill in the brackets, and paste the agent sections.</li>
+          <li>Open <code>playbooks/03-debug-loop-breaker.md</code> and paste Prompt 1.</li>
+        </ol>
+        <pre><code>mkdir -p .cursor/rules
+cp rules/02-scope-guard.mdc .cursor/rules/
+cp rules/03-debug-loop-breaker.mdc .cursor/rules/</code></pre>
+        <p><a href="https://github.com/besttechguides/vibeplaybooks/archive/refs/heads/main.zip">Download the sample as a ZIP</a> · <a href="https://github.com/besttechguides/vibeplaybooks">View the files on GitHub</a></p>
+      </div>
+    </section>
+
+    <section class="band" id="pack">
+      <div class="wrap">
+        <h2>The Vibe Launch Pack</h2>
+        <p class="sub">16 job playbooks for Cursor and Claude Code. £12, instant download, 14-day refund.</p>
+        <ul class="list">
+          <li><span class="num">01</span> Project brief and agent setup</li>
+          <li><span class="num">09</span> Landing page with a real CTA</li>
+          <li><span class="num">02</span> Scope guard</li>
+          <li><span class="num">10</span> Waitlist or email capture</li>
+          <li><span class="num">03</span> Debug-loop breaker</li>
+          <li><span class="num">11</span> Transactional email</li>
+          <li><span class="num">04</span> Secrets and env vars</li>
+          <li><span class="num">12</span> Basic SEO and share image</li>
+          <li><span class="num">05</span> Auth without locking yourself out</li>
+          <li><span class="num">13</span> Tests the agent must not weaken</li>
+          <li><span class="num">06</span> Stripe checkout that actually checks payment</li>
+          <li><span class="num">14</span> Errors in production</li>
+          <li><span class="num">07</span> Safe database access</li>
+          <li><span class="num">15</span> Accessibility baseline</li>
+          <li><span class="num">08</span> Deploy without leaking env</li>
+          <li><span class="num">16</span> Pre-launch audit and handoff</li>
+        </ul>
+        <p style="margin-top:28px;color:#c9b8a0;max-width:40rem;">Each playbook is a Cursor rule, an agent section, a prompt sequence, a checklist, and done-when tests — including cheats such as “visiting the success URL must not mark an order as paid.”</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap split">
+        <div class="price-card free">
+          <h3>Free sample</h3>
+          <h4>Debug Loop Breaker</h4>
+          <ul>
+            <li>The complete debug playbook</li>
+            <li>Scope-guard rule</li>
+            <li>AGENTS.md starter</li>
+          </ul>
+          <a class="btn btn-paper" href="https://github.com/besttechguides/vibeplaybooks">Get it on GitHub</a>
+        </div>
+        <div class="price-card paid">
+          <h3>The pack · £12</h3>
+          <h4>Vibe Launch Pack</h4>
+          <ul>
+            <li>All 16 launch playbooks</li>
+            <li>Auth, Stripe, deploy, audit</li>
+            <li>14-day refund</li>
+          </ul>
+          <a class="btn btn-primary" href="PAYHIP_URL">Buy on Payhip — £12</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p>VibePlaybooks is a product of Best Tech Guides, a trading name of Andrew Ellis (Nottingham, UK). Not affiliated with Cursor, Anysphere, Anthropic, Stripe, Vercel, or any other tool named here.</p>
+      <p>These playbooks reduce common mistakes. They are not legal, tax, or security advice, and they do not replace reviewing what you ship. <a href="https://github.com/besttechguides/vibeplaybooks/blob/main/LICENSE.md">Licence</a>.</p>
+    </div>
+  </footer>
+</body>
+</html>
