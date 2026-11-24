@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stripe Checkout that actually checks payment</title>
+  <meta name="description" content="Visiting a success URL is not proof of payment. Create Checkout Sessions on the server, fulfil only after a verified webhook, and test the cheats that vibe-coded apps usually allow.">
+  <link rel="canonical" href="https://besttechguides.github.io/vibeplaybooks/how-to/stripe-checkout-that-verifies-payment/">
+  <meta property="og:title" content="Stripe Checkout that actually checks payment">
+  <meta property="og:description" content="Visiting a success URL is not proof of payment. Create Checkout Sessions on the server, fulfil only after a verified webhook, and test the cheats that vibe-coded apps usually allow.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://besttechguides.github.io/vibeplaybooks/how-to/stripe-checkout-that-verifies-payment/">
+  <meta property="og:image" content="https://besttechguides.github.io/vibeplaybooks/assets/og-1200x630.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Stripe Checkout that actually checks payment">
+  <meta name="twitter:description" content="Visiting a success URL is not proof of payment. Create Checkout Sessions on the server, fulfil only after a verified webhook, and test the cheats that vibe-coded apps usually allow.">
+  <meta name="twitter:image" content="https://besttechguides.github.io/vibeplaybooks/assets/og-1200x630.png">
+  <meta name="theme-color" content="#121418">
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <header class="compact">
+    <div class="wrap">
+      <div class="brand">
+        <a href="../../">VIBEPLAYBOOKS</a>
+        <nav class="nav" aria-label="Sections">
+          <a href="../../#sample">Free sample</a>
+          <a href="../../#pack">The pack</a>
+          <a href="../../#guides">Guides</a>
+        </nav>
+      </div>
+      <p class="crumb"><a href="../../">Home</a> / <a href="../../#guides">Guides</a> / Stripe Checkout</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="prose-wrap prose">
+      <h1>Stripe Checkout that actually checks payment</h1>
+      <p class="lede-article">A user who only visits your success URL should not get the paid thing. If they can, you do not have payments. You have a hidden button labelled “pay.”</p>
+      <p class="dateline">24 November 2026 · About a 9 minute read</p>
+
+      <p>This is the failure I see most often in a first Stripe integration, especially one an agent has just generated. The app creates a Checkout Session, sends the customer to Stripe, then marks the order as paid when they land on <code>/success</code>, or when the page sees <code>?paid=1</code>, or when the browser posts “payment succeeded.” None of those are proof that money moved.</p>
+      <p>I walked a throwaway demo through this. In the broken version, visiting <code>/success?paid=1</code> marked the order paid, and a webhook with a junk signature still fulfilled. In the fixed version those cheats were refused, a verified <code>checkout.session.completed</code> event granted access once, and delivering the same event again did nothing the second time.</p>
+      <p>For a first version, hosted <strong>Stripe Checkout</strong> is simpler and safer than a custom card form. This is not tax advice, a marketplace guide, or a full subscriptions billing setup. If you already sell only through Payhip or a similar merchant, you may not need this at all.</p>
+
+      <h2>The rule in one paragraph</h2>
+      <p>Create the Checkout Session on the server, with the price defined on the server, not an amount the browser posts. After payment, fulfil in the webhook for <code>checkout.session.completed</code>, after signature verification, and make that fulfilment idempotent on the event id or session id. The success URL is a receipt page only. It must not grant access.</p>
+
+      <h2>Prompt 1: map the current payment path, no edits</h2>
+      <p>Before you let the agent “add Stripe,” make it tell you what the app already trusts.</p>
+      <div class="prompt" role="figure" aria-label="Prompt 1, map the payment path"><span class="prompt-label">Prompt 1 · no edits, no secret values</span><p>Do not edit files and do not print secret key values. How does a payment currently work? I want: where a Checkout Session or charge is created, where we mark a user or order as paid, and whether that mark can be set by visiting a URL, posting from the client, or only by a verified webhook. If we trust ?paid= or a success page, say that plainly.</p></div>
+      <p>If the answer is “we trust the success page,” the app is not taking payments safely yet. Say that out loud. Then agree the v1 design before anyone types code.</p>
+
+      <h2>Prompt 2: agree the v1 design</h2>
+      <div class="prompt" role="figure" aria-label="Prompt 2, agree the design"><span class="prompt-label">Prompt 2 · design only</span><p>v1: Stripe Checkout, one product, price defined on the server (not an amount from the browser). After payment, [what the user gets]. Fulfilment happens in the webhook for checkout.session.completed, after signature verification, and is idempotent on event id or session id. Success URL is a receipt page only, it must not grant access. Propose a short file list. Wait for my yes.</p></div>
+
+      <h2>Prompt 3: implement in test mode</h2>
+      <div class="prompt" role="figure" aria-label="Prompt 3, implement in test mode"><span class="prompt-label">Prompt 3 · test keys only</span><p>Implement what we agreed, using environment variable names (not real keys) for STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, and the publishable key. Add .env.example placeholders. Give me the exact local steps to run the webhook listener (for example the Stripe CLI) and to complete a test payment. Do not switch on live keys.</p></div>
+      <p>The publishable <code>pk_</code> key is the only key that may go to the client. <code>sk_test_</code>, <code>sk_live_</code> and <code>whsec_</code> are server-only. If you want the longer version of that, see <a href="../secret-keys-leaking-into-the-client/">how secret keys leak into the client app</a>.</p>
+      <div class="callout">
+        <p>In Next.js, the webhook route must receive the <strong>raw</strong> request body for signature verification. Parsing JSON first will break signatures, and the usual “fix” is to disable verification. Do not do that.</p>
+      </div>
+
+      <h2>Prompt 4: the cheats must fail</h2>
+      <p>This is the part most generated checkout tutorials skip. Run these checks in test mode, and fix only if they fail.</p>
+      <div class="prompt" role="figure" aria-label="Prompt 4, cheat checks"><span class="prompt-label">Prompt 4 · cheat checks</span><p>Run or spell out these checks, and fix only if they fail:</p><p>1. Visiting the success URL, or ?paid=1, or pasting a session id I did not pay for, does not grant the paid thing.
+2. A webhook post with a junk signature is rejected.
+3. Delivering the same valid event twice grants the paid thing only once.
+4. The amount or product cannot be lowered by a client POST.</p><p>Report pass/fail for each.</p></div>
+
+      <p>The done-when test I care about most is number 1: you (or the agent) tried to cheat with the success URL and were refused. A genuine test-mode Checkout payment, with a verified webhook, should then grant access, once.</p>
+
+      <h2>A success URL can still show a receipt</h2>
+      <p><code>session_id</code> on the success URL is useful to display a receipt after you retrieve the session on the server and confirm <code>payment_status</code> is <code>paid</code>. That is a display path. The webhook remains the system of record for granting the goods. Do not “fix” a missing local webhook by fulfilling on the success page. If the event never arrives, use the Stripe CLI or a tunnel until it does.</p>
+
+      <h2>Go live is a separate, deliberate step</h2>
+      <div class="prompt" role="figure" aria-label="Prompt 5, go-live notes"><span class="prompt-label">Prompt 5 · notes only, do not flip live</span><p>Write a short go-live list in the repo (for example docs/stripe-go-live.md): switch to live keys in the host’s env, set the live webhook endpoint and new whsec_, fulfil the same way, and a reminder to do one real £[small] purchase myself. Do not put real keys in the file. Do not enable live mode yourself.</p></div>
+      <p>Do not point a live webhook at a test key, or the reverse, and then “fix” it by disabling verification. Subscriptions need additional events (<code>invoice.paid</code>, cancellation). Do not pretend a one-shot Checkout playbook covers the whole subscription life cycle. This also does not set up Stripe Tax or UK VAT for you; check Stripe’s and GOV.UK’s own documentation.</p>
+
+            <div class="cta-box" id="get-the-playbook">
+        <h2>Get the playbook files</h2>
+        <p>The free Debug Loop Breaker sample on GitHub has the Cursor rule, the AGENTS.md section, and the full prompt sequence you can paste into a new chat. The Vibe Launch Pack (£12) adds 15 more playbooks, including the Stripe and secrets checks described in these guides.</p>
+        <div class="actions">
+          <a class="btn btn-primary" href="https://github.com/besttechguides/vibeplaybooks">Free sample on GitHub</a>
+          <a class="btn btn-ghost" href="https://payhip.com/b/p2ol7">Free sample by email</a>
+          <a class="btn btn-ghost" href="https://payhip.com/b/6UGRb">Vibe Launch Pack, £12</a>
+        </div>
+      </div>
+
+      <div class="more-guides">
+        <h2>More how-to guides</h2>
+                <article class="card">
+          <a class="card-link" href="../../how-to/debug-loop/">
+            <h3>Break a Cursor debug loop</h3>
+            <p>Reproduce first, test one hypothesis, and stop after two failed attempts, so the agent cannot silently rewrite the file again.</p>
+          </a>
+        </article>
+        <article class="card">
+          <a class="card-link" href="../../how-to/secret-keys-leaking-into-the-client/">
+            <h3>Secret keys leaking into the client app</h3>
+            <p>Public-prefixed env vars are baked into the JavaScript users download. Here is how that happens, and how to search the bundle before you deploy.</p>
+          </a>
+        </article>
+      </div>
+    </div>
+  </main>
+  <footer>
+    <div class="wrap">
+      <p>VibePlaybooks is a product of Best Tech Guides, a trading name of Andrew Ellis (Nottingham, UK). Not affiliated with Cursor, Anysphere, Anthropic, Stripe, Vercel, or any other tool named here.</p>
+      <p>These playbooks reduce common mistakes. They are not legal, tax, or security advice, and they do not replace reviewing what you ship. <a href="https://github.com/besttechguides/vibeplaybooks/blob/main/LICENSE.md">Licence</a>.</p>
+    </div>
+  </footer>
+</body>
+</html>

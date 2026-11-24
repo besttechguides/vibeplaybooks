@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How secret keys leak into the client app</title>
+  <meta name="description" content="A secret in a NEXT_PUBLIC_ or VITE_ variable is baked into the JavaScript your users download. Here is how that happens, and how to search the production bundle before you deploy.">
+  <link rel="canonical" href="https://besttechguides.github.io/vibeplaybooks/how-to/secret-keys-leaking-into-the-client/">
+  <meta property="og:title" content="How secret keys leak into the client app">
+  <meta property="og:description" content="A secret in a NEXT_PUBLIC_ or VITE_ variable is baked into the JavaScript your users download. Here is how that happens, and how to search the production bundle before you deploy.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://besttechguides.github.io/vibeplaybooks/how-to/secret-keys-leaking-into-the-client/">
+  <meta property="og:image" content="https://besttechguides.github.io/vibeplaybooks/assets/og-1200x630.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="How secret keys leak into the client app">
+  <meta name="twitter:description" content="A secret in a NEXT_PUBLIC_ or VITE_ variable is baked into the JavaScript your users download. Here is how that happens, and how to search the production bundle before you deploy.">
+  <meta name="twitter:image" content="https://besttechguides.github.io/vibeplaybooks/assets/og-1200x630.png">
+  <meta name="theme-color" content="#121418">
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <header class="compact">
+    <div class="wrap">
+      <div class="brand">
+        <a href="../../">VIBEPLAYBOOKS</a>
+        <nav class="nav" aria-label="Sections">
+          <a href="../../#sample">Free sample</a>
+          <a href="../../#pack">The pack</a>
+          <a href="../../#guides">Guides</a>
+        </nav>
+      </div>
+      <p class="crumb"><a href="../../">Home</a> / <a href="../../#guides">Guides</a> / Secret keys in the client</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="prose-wrap prose">
+      <h1>How secret keys leak into the client app</h1>
+      <p class="lede-article">“I did not commit the .env file” is not the same as “users cannot download the key.” If a secret went into a public-prefixed variable, it is in the JavaScript bundle.</p>
+      <p class="dateline">24 November 2026 · About an 8 minute read</p>
+
+      <p>Agents are good at wiring environment variables and bad at noticing which ones ship to the browser. I tested this against a throwaway app that looked fine in source: no <code>.env</code> in git, placeholders in <code>.env.example</code>, keys “in env.” The production client bundle still contained <code>sk_test_</code> and <code>service_role</code> strings, and a leftover <code>/api/debug/env</code> route dumped a key. A search of the built assets caught both. Checking git history alone would have missed them.</p>
+      <p>This is the usual mechanism, not a rare misconfiguration.</p>
+
+      <h2>How the leak happens</h2>
+      <p>Frameworks deliberately expose some env vars to client code, and they inline the values at <strong>build</strong> time:</p>
+      <ul>
+        <li>Next.js: any <code>NEXT_PUBLIC_*</code> variable is available in the browser.</li>
+        <li>Vite: any <code>VITE_*</code> variable is available in the browser.</li>
+        <li>Expo / React Native: <code>EXPO_PUBLIC_*</code> is baked into the app.</li>
+      </ul>
+      <p>If an agent (or a tutorial) names a Stripe secret, a Supabase <code>service_role</code> key, a webhook secret, or a database URL with one of those prefixes, the production JavaScript will contain the value. Moving the variable in the host dashboard does not fix a bundle that was already built. You have to rotate the key, then rebuild and redeploy.</p>
+      <div class="callout">
+        <p>The Supabase <code>anon</code> key is designed to be public, with Row Level Security in front of it. The <code>service_role</code> key is a secret and is never used in the browser. Stripe’s publishable <code>pk_</code> key may go to the client. <code>sk_test_</code>, <code>sk_live_</code> and <code>whsec_</code> may not.</p>
+      </div>
+
+      <h2>Prompt 1: inventory, no secret values</h2>
+      <p>Start with a table, not a cleanup. Ask the agent not to print any secret it finds.</p>
+      <div class="prompt" role="figure" aria-label="Prompt 1, inventory"><span class="prompt-label">Prompt 1 · read only</span><p>Do not edit files and do not print any secret values. From the repo, list every environment variable the app expects, whether it is public or secret, and whether it is required at build time, runtime, or both. Flag any secret that is public-prefixed or imported in client code. Produce a table I can copy into the host’s dashboard.</p></div>
+      <p>Then widen the search to strings that already look like keys, including committed files and screenshots of logs if you have them:</p>
+      <div class="prompt" role="figure" aria-label="Prompt 1b, search for key patterns"><span class="prompt-label">Optional extra · pattern search</span><p>Search the repo for environment variables, .env* files, and strings that look like keys (sk_, sk-, AKIA, service_role, BEGIN PRIVATE KEY, ghp_, xox, postgres://, mysql://). Produce a table with: name or pattern, file path, whether it appears to be public or secret, and whether it is committed or only in an example file.</p></div>
+
+      <h2>Prompt 2: fix the wiring, not the values</h2>
+      <div class="prompt" role="figure" aria-label="Prompt 2, fix the wiring"><span class="prompt-label">Prompt 2 · smallest wiring changes</span><p>Using the inventory, make the smallest changes so that: (1) .env, .env.local and similar are in .gitignore; (2) a .env.example exists with placeholder values only; (3) any secret you found in client code is moved to a server-only variable, and the client is broken on purpose until I supply the server path. Do not put real values into any file. Do not print existing values.</p></div>
+      <p>Breaking the client on purpose is the point. If a page still works after you remove a secret from a public variable, that secret was not actually required in the browser, or a leftover build is still serving it.</p>
+
+      <h2>Prompt 3: search the production build</h2>
+      <p>This is the check that catches what source review misses. Run the production build, then search the built client assets. For Next.js that is typically <code>.next/static</code>. Otherwise look in <code>dist</code>, <code>build</code>, or <code>out</code>.</p>
+      <div class="prompt" role="figure" aria-label="Prompt 3, search the client bundle"><span class="prompt-label">Prompt 3 · search the bundle</span><p>Run the production build command from AGENTS.md. Then search the built client assets (for Next.js, typically .next/static; otherwise dist, build, or out) for: sk_live, sk_test, service_role, BEGIN PRIVATE KEY, whsec_, postgres://, and SECRET=. Report only file names and masked snippets if you find a hit (first 3 and last 2 characters). Do not upload this build anywhere.</p></div>
+      <p>If you have not checked the client bundle, do not say “no secrets are leaked.” A clean source tree can still leak if an old build is what got deployed. Search the deployed JavaScript too, not only <code>main</code>.</p>
+
+      <h2>Debug routes are a second leak</h2>
+      <p>Agents often leave a helper such as <code>/api/debug/env</code>, a dev login, or a “reset database” route behind a <code>NODE_ENV !== 'production'</code> gate that does not mean what you think, or behind no gate at all. Ask for a list, then remove or lock those routes so they cannot run in production.</p>
+      <div class="prompt" role="figure" aria-label="Prompt, production hygiene"><span class="prompt-label">Production hygiene</span><p>Search the repo for debug routes, NODE_ENV !== 'production' gates that expose tools, default passwords, and source maps that might be served in production if we configured that. List them. Propose the smallest changes so they cannot run in production. Wait for my yes, then apply.</p></div>
+
+      <h2>If a key was already committed or shipped</h2>
+      <p>Do not try to rewrite git history unless you explicitly want to. Rotate the key at the provider. Check GitHub secret scanning, the host’s env, and old preview deployments. After rotation, rebuild and redeploy: frameworks inline public variables at build time, so changing Vercel env and not rebuilding is how old keys stay in the bundle. Search the repo for a short unique snippet of the old value to confirm it is gone, and do not print the full secret.</p>
+      <p>Preview deployments may use preview env vars. Do not put live Stripe or database credentials on every pull request preview if you can avoid it. Some hosts expose build logs; confirm a failed build did not print <code>.env</code>. If you use Docker, do not <code>COPY .env</code> into the image, and never bake <code>ENV SK_LIVE=...</code> into a public Dockerfile.</p>
+
+      <h2>How you know you are done</h2>
+      <ul>
+        <li>The inventory has no row that is both “secret” and “in client or committed.”</li>
+        <li>A search of the local production build is clean.</li>
+        <li>Debug, dev-login, and reset-database routes are not reachable in production.</li>
+        <li>You have a list of host env vars you can actually fill in, with no real values stored in git.</li>
+      </ul>
+
+            <div class="cta-box" id="get-the-playbook">
+        <h2>Get the playbook files</h2>
+        <p>The free Debug Loop Breaker sample on GitHub has the Cursor rule, the AGENTS.md section, and the full prompt sequence you can paste into a new chat. The Vibe Launch Pack (£12) adds 15 more playbooks, including the Stripe and secrets checks described in these guides.</p>
+        <div class="actions">
+          <a class="btn btn-primary" href="https://github.com/besttechguides/vibeplaybooks">Free sample on GitHub</a>
+          <a class="btn btn-ghost" href="https://payhip.com/b/p2ol7">Free sample by email</a>
+          <a class="btn btn-ghost" href="https://payhip.com/b/6UGRb">Vibe Launch Pack, £12</a>
+        </div>
+      </div>
+
+      <div class="more-guides">
+        <h2>More how-to guides</h2>
+                <article class="card">
+          <a class="card-link" href="../../how-to/debug-loop/">
+            <h3>Break a Cursor debug loop</h3>
+            <p>Reproduce first, test one hypothesis, and stop after two failed attempts, so the agent cannot silently rewrite the file again.</p>
+          </a>
+        </article>
+        <article class="card">
+          <a class="card-link" href="../../how-to/stripe-checkout-that-verifies-payment/">
+            <h3>Stripe Checkout that actually checks payment</h3>
+            <p>A success URL is not proof of payment. Fulfil only after a verified webhook, and test the cheats that usually slip through.</p>
+          </a>
+        </article>
+      </div>
+    </div>
+  </main>
+  <footer>
+    <div class="wrap">
+      <p>VibePlaybooks is a product of Best Tech Guides, a trading name of Andrew Ellis (Nottingham, UK). Not affiliated with Cursor, Anysphere, Anthropic, Stripe, Vercel, or any other tool named here.</p>
+      <p>These playbooks reduce common mistakes. They are not legal, tax, or security advice, and they do not replace reviewing what you ship. <a href="https://github.com/besttechguides/vibeplaybooks/blob/main/LICENSE.md">Licence</a>.</p>
+    </div>
+  </footer>
+</body>
+</html>

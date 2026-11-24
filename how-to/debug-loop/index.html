@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How to break a Cursor debug loop</title>
+  <meta name="description" content="When Cursor keeps fixing the same bug and making it worse, stop letting it edit. Reproduce first, test one hypothesis, and halt after two failed attempts.">
+  <link rel="canonical" href="https://besttechguides.github.io/vibeplaybooks/how-to/debug-loop/">
+  <meta property="og:title" content="How to break a Cursor debug loop">
+  <meta property="og:description" content="When Cursor keeps fixing the same bug and making it worse, stop letting it edit. Reproduce first, test one hypothesis, and halt after two failed attempts.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://besttechguides.github.io/vibeplaybooks/how-to/debug-loop/">
+  <meta property="og:image" content="https://besttechguides.github.io/vibeplaybooks/assets/og-1200x630.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="How to break a Cursor debug loop">
+  <meta name="twitter:description" content="When Cursor keeps fixing the same bug and making it worse, stop letting it edit. Reproduce first, test one hypothesis, and halt after two failed attempts.">
+  <meta name="twitter:image" content="https://besttechguides.github.io/vibeplaybooks/assets/og-1200x630.png">
+  <meta name="theme-color" content="#121418">
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <header class="compact">
+    <div class="wrap">
+      <div class="brand">
+        <a href="../../">VIBEPLAYBOOKS</a>
+        <nav class="nav" aria-label="Sections">
+          <a href="../../#sample">Free sample</a>
+          <a href="../../#pack">The pack</a>
+          <a href="../../#guides">Guides</a>
+        </nav>
+      </div>
+      <p class="crumb"><a href="../../">Home</a> / <a href="../../#guides">Guides</a> / Debug loop</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="prose-wrap prose">
+      <h1>How to break a Cursor debug loop</h1>
+      <p class="lede-article">If the agent has already “fixed” the bug twice and the file no longer looks like yours, the next edit is the problem, not the solution.</p>
+      <p class="dateline">24 November 2026 · About an 8 minute read</p>
+
+      <p>Most of the debug loops I see start the same way. You paste an error. The agent rewrites a function. The error is still there, or a new one appears in the same place. You say “still broken.” It rewrites a bit more, or it replaces the whole file “to make debugging easier.” Ten minutes later you cannot tell what changed, and you still cannot reproduce a passing result.</p>
+
+      <p>The routine below is the one I use to stop that spiral. It works in Cursor and in Claude Code. You do not have to understand the whole file. You do have to stop the agent editing before it has reproduced the bug.</p>
+
+      <h2>A bug that looks mysterious until you run it twice</h2>
+      <p>Here is a small example I used when I tested this playbook. An endpoint <code>/api/total?a=2&amp;b=3</code> was supposed to return <code>5</code>. It returned <code>"23"</code>. That looks like a weird framework issue until you actually call it. Run the same request twice with no edits and the answer is stable: the handler is concatenating strings, not adding numbers.</p>
+      <p>If you skip that step, an agent will often “fix” it by reshaping the route, adding a library, or rewriting the file. The concatenation is still there, now harder to see. The first prompt exists to prevent that.</p>
+
+      <h2>Start a new chat</h2>
+      <p>Old chats are already in the loop. They contain the failed edits, the half-theories, and the urge to keep going. Start a new agent chat for this bug, keep a short rule in <code>.cursor/rules/</code> that forbids refactors while debugging, and paste Prompt 1.</p>
+
+      <h2>Prompt 1: evidence only, no edits</h2>
+      <p>This is the prompt that does most of the work. Copy it, fill in the brackets, and do not give permission to edit until you like the hypothesis.</p>
+      <div class="prompt" role="figure" aria-label="Prompt 1, evidence only"><span class="prompt-label">Prompt 1 · no edits</span><p>We are debugging. Do not edit any files yet.</p><p>Bug: [one sentence].
+Steps I take: [1, 2, 3].
+Expected: [what should happen].
+Actual: [what happens].</p><p>Here is the error or log output, pasted in full:</p><p>[paste]</p><p>Read the code on the path that would run for those steps. Then tell me: (a) the files and functions involved, in order, (b) one hypothesis for the cause, (c) the single smallest check or edit that would prove or disprove it. Wait for my yes before editing.</p></div>
+
+      <p>A good reply names a path through the code, one cause, and one small check. A bad reply starts editing, offers three theories at once, or proposes a rewrite “so we can see what is going on.” Send it back if it does any of those.</p>
+
+      <h2>Prompt 2: one hypothesis, one change</h2>
+      <div class="prompt" role="figure" aria-label="Prompt 2, one change"><span class="prompt-label">Prompt 2 · one change</span><p>Hypothesis we agreed: [quote it]. Make only the smallest change that tests it. Do not refactor. Then run or re-state the exact reproduction steps, and report what happened. If you cannot run it yourself, give me the exact steps to run and wait.</p></div>
+      <p>Re-run the same steps you wrote in Prompt 1. If the agent “also cleaned up” a second file, that is already two changes, and you will not know which one mattered. Revert the extra work.</p>
+
+      <h2>If it fails, try once more, then stop</h2>
+      <p>A second attempt is allowed. A third silent rewrite is how the hole gets deeper.</p>
+      <div class="prompt" role="figure" aria-label="Prompt 3, second attempt"><span class="prompt-label">Prompt 3 · second attempt</span><p>The bug is still there. This is attempt two, not a rewrite. Say what the first attempt taught us, name a different hypothesis, and propose one change. Wait for my yes.</p></div>
+      <div class="prompt" role="figure" aria-label="Prompt 4, stop after two failures"><span class="prompt-label">Prompt 4 · after two failures</span><p>Stop editing. Do not try a third fix. Write a short brief I can reuse: steps, expected, actual, the two hypotheses we tested, the exact diffs, and what evidence is missing. List two things I could collect (a log line, a screenshot, a network trace, a value you cannot see). Then wait.</p></div>
+
+      <div class="callout">
+        <p>If the agent offers to “rewrite this module so debugging is easier,” treat that as a third attempt in disguise. Do not let it. The brief from Prompt 4 is the useful output now.</p>
+      </div>
+
+      <h2>Once it is actually fixed</h2>
+      <div class="prompt" role="figure" aria-label="Prompt 5, after the fix"><span class="prompt-label">Prompt 5 · after the fix</span><p>Summarise the root cause in five lines or fewer, in plain English. List the files that should stay changed. Confirm there are no leftover debug hacks, extra console logs with secrets, or commented-out blocks from the failed attempts. If there are, remove only those leftovers.</p></div>
+
+      <h2>How you know you are done</h2>
+      <ul>
+        <li>The original steps now produce the expected result, or you have the written brief from Prompt 4 and have stopped the loop.</li>
+        <li><code>git diff</code> (or the agent’s file list) shows a small, relevant change, not a rewritten module.</li>
+        <li>The agent did not delete tests or error handling as part of the “fix.”</li>
+      </ul>
+
+      <h2>When it still fails</h2>
+      <p>You may be changing two things at once, code and data, or two files. Go back to one. The reproduction may be wrong: a cached build, an old env, a different port. Confirm you are hitting the code you think you are hitting. If the real problem is “I have no idea what this repo does,” write a short project brief first, then come back to Prompt 1.</p>
+      <p>If the bug is in production only, you still start with Prompt 1. Add the log lines you have. Do not “fix production” by rewriting local files you have not evidenced.</p>
+
+            <div class="cta-box" id="get-the-playbook">
+        <h2>Get the playbook files</h2>
+        <p>The free Debug Loop Breaker sample on GitHub has the Cursor rule, the AGENTS.md section, and the full prompt sequence you can paste into a new chat. The Vibe Launch Pack (£12) adds 15 more playbooks, including the Stripe and secrets checks described in these guides.</p>
+        <div class="actions">
+          <a class="btn btn-primary" href="https://github.com/besttechguides/vibeplaybooks">Free sample on GitHub</a>
+          <a class="btn btn-ghost" href="https://payhip.com/b/p2ol7">Free sample by email</a>
+          <a class="btn btn-ghost" href="https://payhip.com/b/6UGRb">Vibe Launch Pack, £12</a>
+        </div>
+      </div>
+
+      <div class="more-guides">
+        <h2>More how-to guides</h2>
+                <article class="card">
+          <a class="card-link" href="../../how-to/stripe-checkout-that-verifies-payment/">
+            <h3>Stripe Checkout that actually checks payment</h3>
+            <p>A success URL is not proof of payment. Fulfil only after a verified webhook, and test the cheats that usually slip through.</p>
+          </a>
+        </article>
+        <article class="card">
+          <a class="card-link" href="../../how-to/secret-keys-leaking-into-the-client/">
+            <h3>Secret keys leaking into the client app</h3>
+            <p>Public-prefixed env vars are baked into the JavaScript users download. Here is how that happens, and how to search the bundle before you deploy.</p>
+          </a>
+        </article>
+      </div>
+    </div>
+  </main>
+  <footer>
+    <div class="wrap">
+      <p>VibePlaybooks is a product of Best Tech Guides, a trading name of Andrew Ellis (Nottingham, UK). Not affiliated with Cursor, Anysphere, Anthropic, Stripe, Vercel, or any other tool named here.</p>
+      <p>These playbooks reduce common mistakes. They are not legal, tax, or security advice, and they do not replace reviewing what you ship. <a href="https://github.com/besttechguides/vibeplaybooks/blob/main/LICENSE.md">Licence</a>.</p>
+    </div>
+  </footer>
+</body>
+</html>
